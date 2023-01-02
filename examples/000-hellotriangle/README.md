@@ -1,3 +1,4 @@
+![Hello triangle](https://user-images.githubusercontent.com/26156425/210190688-107b10bf-f511-42e3-8d11-853e44acefb2.png)
 # VBOs
 Vertex attributes are views into the VBO, which
 may be much larger than the data that is interesting to the renderer.

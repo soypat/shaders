@@ -1,5 +1,8 @@
 #version 330
 
+// v_vert_color is received from the
+// vertex shader. That's how the 
+// GPU pipeline works. Frags follow the vertex.
 in vec4 v_vert_color;
 
 out vec4 color;
