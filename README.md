@@ -6,7 +6,7 @@ The following "shader" is a program that sets the whole viewport
 to magenta. So you get a magenta screen.
 ```glsl
 void main() {
-    gl_FragColor = vec4(pi/4.,0.0,1.0,1.0);
+    gl_FragColor = vec4(0.7,0.0,1.0,1.0);
 }
 ```
 It is a **fragment shader**. This means it is executed for every fragment (usually a single pixel) 
