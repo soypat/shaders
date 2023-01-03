@@ -1,16 +1,70 @@
 package shaders
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/go-gl/gl/v4.6-core/gl"
 )
+
+// ParseCombinedBasic parses a file with vertex and fragment #shader pragmas.
+//
+// https://www.youtube.com/watch?v=2pv0Fbo-7ms&list=PLlrATfBNZ98foTJPJ_Ev03o2oq3-GGOS2&index=9&t=724s&ab_channel=TheCherno
+func ParseCombinedBasic(r io.Reader) (vertexSrc, fragSrc string, err error) {
+	const (
+		shaderNone = iota
+		shaderVertex
+		shaderFragment
+		shaderNum
+	)
+	nothing := bytes.NewBuffer(nil)
+	vertexBuf := bytes.NewBuffer(nil)
+	fragBuf := bytes.NewBuffer(nil)
+	buffers := [shaderNum]*bytes.Buffer{
+		shaderNone:     nothing,
+		shaderVertex:   vertexBuf,
+		shaderFragment: fragBuf,
+	}
+	scanner := bufio.NewScanner(r)
+	currentShader := shaderNone
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if currentShader != shaderNone && !bytes.HasPrefix(bytes.TrimSpace(line), []byte("#shader ")) {
+			buffers[currentShader].Write(line)
+			buffers[currentShader].WriteByte('\n')
+			continue
+		}
+		if bytes.Index(line, []byte("vertex")) > 0 {
+			currentShader = shaderVertex
+		} else if bytes.Index(line, []byte("fragment")) > 0 {
+			currentShader = shaderFragment
+		}
+	}
+
+	// Null terminated strings.
+	if vertexBuf.Len() > 0 {
+		vertexBuf.WriteByte(0)
+	}
+	if fragBuf.Len() > 0 {
+		fragBuf.WriteByte(0)
+	}
+	return vertexBuf.String(), fragBuf.String(), scanner.Err()
+}
 
 // CompileBasic compiles two OpenGL vertex and fragment shaders
 // and returns a program with the current OpenGL context.
 // It returns an error if compilation, linking or validation fails.
 func CompileBasic(vertexSrcCode, fragmentSrcCode string) (program uint32, err error) {
+	if !strings.HasSuffix(vertexSrcCode, "\x00") {
+		return 0, errors.New("vertex shader source has no null terminator")
+	}
+	if !strings.HasSuffix(fragmentSrcCode, "\x00") {
+		return 0, errors.New("fragment shader source has no null terminator")
+	}
 	program = gl.CreateProgram()
 	vid, err := compile(gl.VERTEX_SHADER, vertexSrcCode)
 	if err != nil {

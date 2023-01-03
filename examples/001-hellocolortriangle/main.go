@@ -10,6 +10,7 @@ import (
 	_ "image/png"
 	"os"
 	"runtime"
+	"strings"
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.6-core/gl"
@@ -20,6 +21,11 @@ import (
 
 const windowWidth = 800
 const windowHeight = 600
+
+// shader contains our source code by embedding.
+//
+//go:embed triangle.glsl
+var shader string
 
 func init() {
 	// GLFW event handling must run on the main OS thread
@@ -73,8 +79,13 @@ func main() {
 
 	slog.Info("openGL init via Glow", slog.String("version", gl.GoStr(gl.GetString(gl.VERSION))))
 
+	vertexSource, fragSource, err := shaders.ParseCombinedBasic(strings.NewReader(shader))
+	if err != nil {
+		slog.Error("parsing combined shaders", err)
+		os.Exit(1)
+	}
 	// Configure the vertex and fragment shaders
-	program, err := shaders.CompileBasic(vertexShader, fragmentShader)
+	program, err := shaders.CompileBasic(vertexSource, fragSource)
 	if err != nil {
 		slog.Error("compiling program", err)
 		os.Exit(1)
@@ -138,15 +149,4 @@ func main() {
 			window.SetShouldClose(true)
 		}
 	}
-}
-
-//go:embed triangle_vert.glsl
-var vertexShader string
-
-//go:embed triangle_frag.glsl
-var fragmentShader string
-
-func init() {
-	vertexShader += "\x00"
-	fragmentShader += "\x00"
 }
