@@ -24,7 +24,7 @@ const windowHeight = 600
 
 // shader contains our source code by embedding.
 //
-//go:embed triangle.glsl
+//go:embed colortriangle.glsl
 var shader string
 
 func init() {

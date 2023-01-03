@@ -14,12 +14,34 @@ import (
 	"github.com/soypat/shaders"
 )
 
-const windowWidth = 800
-const windowHeight = 600
+// Very basic index buffer example.
+const (
+	projectName  = "Index Buffers"
+	windowWidth  = 800
+	windowHeight = 800
+)
 
 func init() {
 	// GLFW event handling must run on the main OS thread
 	runtime.LockOSThread()
+}
+
+//go:embed triangle.glsl
+var shader string
+
+// Square with indices:
+// 3----2
+// |    |
+// 0----1
+var positions = []float32{
+	-0.5, -0.5, // 0
+	0.5, -0.5, // 1
+	0.5, 0.5, // 2
+	-0.5, 0.5, //3
+}
+var indices = []uint32{
+	0, 1, 2, // Lower right triangle.
+	0, 2, 3, // Upper left triangle.
 }
 
 func main() {
@@ -33,7 +55,7 @@ func main() {
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
-	window, err := glfw.CreateWindow(windowWidth, windowHeight, "Hello triangle", nil, nil)
+	window, err := glfw.CreateWindow(windowWidth, windowHeight, projectName, nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -58,32 +80,44 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer gl.DeleteProgram(program)
 	gl.UseProgram(program)
+
 	gl.BindFragDataLocation(program, 0, gl.Str("outputColor\x00"))
 
-	// Configure the vertex data
+	// float32 is 4 bytes wide.
+	const attrSize = 4
+
+	// Configure the Vertex Array Object.
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
 	gl.BindVertexArray(vao)
 
-	// float32 is 4 bytes wide.
-	const attrSize = 4
-	var vbo uint32
-	vertPtr := unsafe.Pointer(&triangleVertices[0])
-	gl.GenBuffers(1, &vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, attrSize*len(triangleVertices), vertPtr, gl.STATIC_DRAW)
+	// Create the Position Buffer Object.
+	var pbo uint32
+	vertPtr := unsafe.Pointer(&positions[0])
+	gl.GenBuffers(1, &pbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, pbo)
+	gl.BufferData(gl.ARRAY_BUFFER, attrSize*len(positions), vertPtr, gl.STATIC_DRAW)
 	vertAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vert\x00")))
 	gl.EnableVertexAttribArray(vertAttrib)
 
+	// Create Index Buffer Object.
+	var ibo uint32
+	indPtr := unsafe.Pointer(&indices[0])
+	gl.GenBuffers(1, &ibo)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, attrSize*len(indices), indPtr, gl.STATIC_DRAW)
 	// Size is 2 since each vertex contains 2 gl.FLOATs
 	// Stride is 2 since our data is 2D.
 	gl.VertexAttribPointerWithOffset(vertAttrib, 2, gl.FLOAT, false, 2*attrSize, 0)
 
 	for !window.ShouldClose() {
 		gl.Clear(gl.COLOR_BUFFER_BIT)
-		// NOTE: If nothing is visible maybe add a gl.BindVertexArray(vao) call in here and file a bug!
-		gl.DrawArrays(gl.TRIANGLES, 0, 3)
+		// BEWARE WITH gl.UNSIGNED_INT, all buffer indices take unsigned integers.
+		// If gl.INT is used nothing will be drawn.
+		gl.DrawElements(gl.TRIANGLES, int32(len(indices)), gl.UNSIGNED_INT, unsafe.Pointer(nil))
+
 		// Maintenance
 		window.SwapBuffers()
 		glfw.PollEvents()
@@ -91,13 +125,4 @@ func main() {
 			window.SetShouldClose(true)
 		}
 	}
-}
-
-//go:embed triangle.glsl
-var shader string
-
-var triangleVertices = []float32{
-	-0.5, -0.5,
-	0.0, 0.5,
-	0.5, -0.5,
 }
