@@ -90,6 +90,7 @@ func main() {
 		slog.Error("compiling program", err)
 		os.Exit(1)
 	}
+	defer gl.DeleteProgram(program)
 	gl.UseProgram(program)
 	gl.BindFragDataLocation(program, 0, gl.Str("outputColor\x00"))
 
@@ -110,7 +111,7 @@ func main() {
 	posAttr := gl.GetAttribLocation(program, gl.Str("vert\x00"))
 	if posAttr < 0 {
 		slog.Error("vert attr not found", nil, slog.Int("index", int(posAttr)))
-		os.Exit(1)
+		return
 	}
 	gl.EnableVertexAttribArray(uint32(posAttr))
 	gl.VertexAttribPointerWithOffset(uint32(posAttr), 2, gl.FLOAT, false, vertexSize, 0)
@@ -124,7 +125,7 @@ func main() {
 	vcolorAttr := gl.GetAttribLocation(program, gl.Str("vert_color\x00"))
 	if vcolorAttr < 0 {
 		slog.Error("color not found", nil, slog.Int("index", int(vcolorAttr)))
-		os.Exit(1)
+		return
 	}
 	colorAttr := gl.GetAttribLocation(program, gl.Str("color\x00"))
 	gl.EnableVertexAttribArray(uint32(vcolorAttr))
