@@ -28,7 +28,7 @@ func init() {
 	runtime.LockOSThread()
 }
 
-//go:embed triangle.glsl
+//go:embed uniformtriangle.glsl
 var shader string
 
 // Square with indices:
@@ -114,6 +114,7 @@ func main() {
 	gl.GenBuffers(1, &pbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, pbo)
 	gl.BufferData(gl.ARRAY_BUFFER, attrSize*len(positions), vertPtr, gl.STATIC_DRAW)
+
 	vertAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vert\x00")))
 	gl.EnableVertexAttribArray(vertAttrib)
 
@@ -132,8 +133,10 @@ func main() {
 	// Set the uniform variable to a certain color.
 	gl.Uniform4f(colorUniform, 0.2, 0.3, 0.8, 1)
 
-	// Size is 2 since each vertex contains 2 gl.FLOATs
-	// Stride is 2 since our data is 2D.
+	// VAO: Vertex Array Object is bound to the vertex buffer on this call.
+	// What this line is saying is that `vertAttrib`` index is going to be bound
+	// to the current gl.ARRAY_BUFFER (vbo).
+	// It also stores size, type, normalized, stride and pointer as vertex array state, in addition to the current vertex array buffer object binding. https://registry.khronos.org/OpenGL-Refpages/gl4/html/glVertexAttribPointer.xhtml
 	gl.VertexAttribPointerWithOffset(vertAttrib, 2, gl.FLOAT, false, 2*attrSize, 0)
 	if err := glCheckError(); err != nil {
 		slog.Error("after setup", err)
